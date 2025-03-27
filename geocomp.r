@@ -99,3 +99,74 @@ geometrycollection_list = list(
     st_linestring(linestring_matrix)
 )
 st_geometrycollection(geometrycollection_list)
+
+# Simple feature columns (sfc)
+point1 = st_point(c(5, 2))
+point2 = st_point(c(1, 3))
+points_sfc = st_sfc(point1, point2)
+
+polygon_list1 = list(rbind(c(1, 5), c(2, 2), c(4, 1), c(4, 4), c(1, 5)))
+polygon1 = st_polygon(polygon_list1)
+polygon_list2 = list(rbind(c(0, 2), c(1, 2), c(1, 3), c(0, 3), c(0, 2)))
+polygon2 = st_polygon(polygon_list2)
+polygon_sfc = st_sfc(polygon1, polygon2)
+st_geometry_type(polygon_sfc)
+
+multilinestring_list1 = list(
+    rbind(c(1, 5), c(4, 4), c(4, 1), c(2, 2), c(3, 2)),
+    rbind(c(1, 2), c(2, 4))
+)
+multilinestring1 = st_multilinestring((multilinestring_list1))
+multilinestring_list2 = list(
+    rbind(c(2, 9), c(7, 9), c(5, 6), c(4, 7), c(2, 7)),
+    rbind(c(1, 7), c(3, 8))
+)
+multilinestring2 = st_multilinestring((multilinestring_list2))
+multilinestring_sfc = st_sfc(multilinestring1, multilinestring2)
+st_geometry_type(multilinestring_sfc)
+
+point_multilinestring_sfc = st_sfc(point1, multilinestring1)
+st_geometry_type(point_multilinestring_sfc)
+
+# Set CRS
+points_sfc_wgs = st_sfc(point1, point2, crs = "EPSG:4326")
+st_crs(points_sfc_wgs)
+
+# sfheaders packages
+v = c(1, 1)
+v_sfg_sfh = sfheaders::sfg_point(obj = v)
+v_sfg_sfh
+
+v_sfg_sf = st_point(v)
+print(v_sfg_sf) == print(v_sfg_sfh)
+
+# sfheaders from matrices
+m = matrix(1:8, ncol = 2)
+sfheaders::sfg_linestring(obj = m)
+
+# sfheaders dataframes
+df = data.frame(x = 1:4, y = 4:1)
+sfheaders::sfg_polygon(obj = df)
+
+sfheaders::sfc_point(obj = v)
+sfheaders::sfc_linestring(obj = m)
+sfheaders::sfc_polygon(obj = df)
+
+sfheaders::sf_point(obj = v)
+sfheaders::sf_linestring(obj = m)
+sfheaders::sf_polygon(obj = df)
+
+df_sf = sfheaders::sf_polygon(obj = df)
+st_crs(df_sf) = "EPSG:4326"
+
+# Spherical geometry operations
+sf_use_s2()
+
+india_buffer_with_s2 = st_buffer(india, 1)
+sf_use_s2(FALSE)
+
+india_buffer_without_s2 = st_buffer(india, 1)
+plot(india_buffer_with_s2)
+
+plot(india_buffer_without_s2)
+sf_use_s2(TRUE)
