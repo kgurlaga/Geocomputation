@@ -170,3 +170,30 @@ plot(india_buffer_with_s2)
 
 plot(india_buffer_without_s2)
 sf_use_s2(TRUE)
+
+# Raster
+raster_filepath = system.file("raster/srtm.tif", package = "spDataLarge")
+my_rast = rast(raster_filepath)
+class(my_rast)
+
+single_rast = rast(raster_filepath)
+
+new_raster = rast(nrows = 6, ncols = 6, xmin = -1.5, xmax = 1.5, ymin = -1.5, ymax = 1.5, vals = 1:36)
+
+multi_raster_file = system.file("raster/landsat.tif", package = "spDataLarge")
+multi_rast = rast(multi_raster_file)
+nlyr(multi_rast)
+
+multi_rast3 = subset(multi_rast, 3)
+multi_rast4 = subset(multi_rast, "landsat_4")
+
+multi_rast34 = c(multi_rast3, multi_rast4)
+
+# CRS
+luxembourg = world[world$name_long == "Luxembourg",]
+st_area(luxembourg) / 1000000
+units::set_units(st_area(luxembourg), km^2)
+res(my_rast)
+
+repr = project(my_rast, "EPSG:26912")
+res(repr)
