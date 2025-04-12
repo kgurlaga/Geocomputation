@@ -197,3 +197,49 @@ res(my_rast)
 
 repr = project(my_rast, "EPSG:26912")
 res(repr)
+
+##### Attribute data operations
+library(sf)
+library(terra)
+library(dplyr)
+library(spData)
+library(tidyr)
+
+methods(class = "sf")
+class(world)
+dim(world)
+
+world_df = st_drop_geometry(world)
+
+# Vector attribute subsetting
+world[1:6, ]
+world[, 1:3]
+world[1:6, 1:3]
+world[, c("name_long", "pop")]
+world[, c(T, T, F, F, F, F, F, T, T, F, F)]
+world[, 888]
+
+i_small = world$area_km2 < 10000
+summary(i_small)
+small_countries = world[i_small, ]
+
+small_countries = world[world$area_km2 < 10000, ]
+small_countries = subset(world, area_km2 < 10000)
+
+world1 = select(world, name_long, pop)
+names(world1)
+
+world2 = select(world, name_long:pop)
+
+world3 = select(world, -subregion, -area_km2)
+
+world4 = select(world, name_long, population = pop)
+
+pull(world, pop)
+world$pop
+world[["pop"]]
+
+slice(world, 1:6)
+
+world7 = filter(world, area_km2 < 10000)
+world7 = filter(world, lifeExp > 82)
