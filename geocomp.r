@@ -243,3 +243,43 @@ slice(world, 1:6)
 
 world7 = filter(world, area_km2 < 10000)
 world7 = filter(world, lifeExp > 82)
+
+# Chaining commands with pipes
+world7 = world |>
+    filter(continent == "Asia") |>
+    select(name_long, continent) |>
+    slice(1:5)
+
+world8 = slice(
+    select(
+        filter(world, continent == "Asia"),
+        name_long, continent),
+1:5)
+
+world9_filtered = filter(world, continent == "Asia")
+world9_selected = select(world9_filtered, continent)
+world9 = slice(world9_selected, 1:5)
+
+# Vector attribute aggregation
+world_agg1 = aggregate(pop ~ continent, FUN = sum, data = world, na.rm = TRUE)
+class(world_agg1)
+
+world_agg2 = aggregate(world["pop"], by = list(world$continent), FUN = sum, na.rm = TRUE)
+nrow(world_agg2)
+
+world_agg3 = world %>%
+    group_by(continent) %>%
+    summarize(pop = sum(pop, na.rm = TRUE))
+
+world_agg4 = world %>%
+    group_by(continent) %>%
+    summarize(Pop = sum(pop, na.rm = TRUE), Area = sum(area_km2), N = n())
+
+world_agg5 = world %>%
+    st_drop_geometry() %>%
+    select(pop, continent, area_km2) %>%
+    group_by(Continent = continent) %>%
+    summarize(Pop = sum(pop, na.rm = TRUE), Area = sum(area_km2), N = n()) %>%
+    mutate(Density = round(Pop / Area)) %>%
+    slice_max(Pop, n = 3) %>%
+    arrange(desc(N))
