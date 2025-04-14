@@ -283,3 +283,12 @@ world_agg5 = world %>%
     mutate(Density = round(Pop / Area)) %>%
     slice_max(Pop, n = 3) %>%
     arrange(desc(N))
+
+# Vector attribute joining
+world_coffee = left_join(world, coffee_data)
+class(world_coffee)
+
+plot(world_coffee["coffee_production_2017"])
+
+coffee_renamed = rename(coffee_data, nm = name_long)
+world_coffee2 = left_join(world, coffee_renamed, by = join_by(name_long == nm))
