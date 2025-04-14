@@ -292,3 +292,18 @@ plot(world_coffee["coffee_production_2017"])
 
 coffee_renamed = rename(coffee_data, nm = name_long)
 world_coffee2 = left_join(world, coffee_renamed, by = join_by(name_long == nm))
+
+world_coffee_inner = inner_join(world, coffee_data)
+nrow(world_coffee_inner)
+
+setdiff(coffee_data$name_long, world$name_long)
+
+drc = stringr::str_subset(world$name_long, "Dem*.+Congo")
+print(drc)
+
+coffee_data$name_long[grepl("Congo,", coffee_data$name_long)] = drc
+world_coffee_match = inner_join(world, coffee_data)
+nrow(world_coffee_match)
+
+coffee_world = left_join(coffee_data, world)
+class(coffee_world)
