@@ -307,3 +307,18 @@ nrow(world_coffee_match)
 
 coffee_world = left_join(coffee_data, world)
 class(coffee_world)
+
+# Creating attributes and removing spatial
+world_new = world
+world_new$pop_dens = world_new$pop / world_new$area_km2
+
+world_new2 = world  %>% mutate(pop_dens = pop / area_km2)
+
+world_unite = world %>% tidyr::unite("con_reg", continent:region_un, sep = ":", remove = TRUE)
+
+world_separate = world_unite %>% tidyr::separate(con_reg, c("continent", "region_un"), sep = ":")
+
+world %>% rename(name = name_long)
+
+new_names = c("i", "n", "c", "r", "s", "t", "a", "p", "l", "gP", "geom")
+world_new_names = world %>% setNames(new_names)
