@@ -322,3 +322,30 @@ world %>% rename(name = name_long)
 
 new_names = c("i", "n", "c", "r", "s", "t", "a", "p", "l", "gP", "geom")
 world_new_names = world %>% setNames(new_names)
+
+
+# Manipulating raster objects
+elev = rast(nrows = 6, ncols = 6, xmin = -1.5, xmax = 1.5, ymin = -1.5, ymax = 1.5, vals = 1:36)
+
+grain_order = c("clay", "silt", "sand")
+grain_char = sample(grain_order, 36, replace = TRUE)
+grain_fact = factor(grain_char, levels = grain_order)
+grain = rast(nrows = 6, ncols = 6, xmin = -1.5, xmax = 1.5, ymin = -1.5, ymax = 1.5, vals = grain_fact)
+
+grain2 = grain
+levels(grain2) = data.frame(value = c(0, 1, 2), wetness = c("wet", "moist", "dry"))
+levels(grain2)
+
+elev[1, 1] = 0
+elev[]
+
+elev[1, c(1, 2)] = 0
+
+two_layers = c(grain, elev)
+two_layers[1] = cbind(c(1), c(4))
+two_layers[]
+
+# Summarizing raster objects
+global(elev, sd)
+freq(grain)
+hist(elev)
