@@ -349,3 +349,45 @@ two_layers[]
 global(elev, sd)
 freq(grain)
 hist(elev)
+
+
+### SPATIAL DATA OPERATIONS
+library(sf)
+library(terra)
+library(dplyr)
+library(spData)
+
+# Spatial subsetting
+canterbury = nz %>% filter(Name == "Canterbury")
+canterbury_height = nz_height[canterbury, ]
+
+sel_sgbp = st_intersects(x = nz_height, y = canterbury)
+class(sel_sgbp)
+sel_logical = lengths(sel_sgbp) > 0
+canterbury_height2 = nz_height[sel_logical, ]
+
+canterbury_height3 = nz_height %>% st_filter(y = canterbury, .predicate = st_intersects)
+
+# Topological relations
+polygon_matrix = cbind(
+    x = c(0, 0, 1, 1, 0),
+    y = c(0, 1, 1, 0.5, 0)
+)
+polygon_sfc = st_sfc(st_polygon(list(polygon_matrix)))
+
+point_df = data.frame(
+    x = c(0.2, 0.7, 0.4),
+    y = c(0.1, 0.2, 0.8)
+)
+point_sf = st_as_sf(point_df, coords = c("x", "y"))
+
+st_intersects(point_sf, polygon_sfc)
+
+st_intersects(point_sf, polygon_sfc, sparse = FALSE)
+
+st_within(point_sf, polygon_sfc)
+st_touches(point_sf, polygon_sfc)
+
+st_disjoint(point_sf, polygon_sfc, sparse = FALSE)[, 1]
+
+st_is_within_distance(point_sf, polygon_sfc, dist = 0.2, sparse = FALSE)[, 1]
