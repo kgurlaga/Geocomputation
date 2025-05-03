@@ -391,3 +391,30 @@ st_touches(point_sf, polygon_sfc)
 st_disjoint(point_sf, polygon_sfc, sparse = FALSE)[, 1]
 
 st_is_within_distance(point_sf, polygon_sfc, dist = 0.2, sparse = FALSE)[, 1]
+
+# Distance relations
+nz_heighest = nz_height %>% slice_max(n = 1, order_by = elevation)
+canterbury_centroid = st_centroid(canterbury)
+st_distance(nz_height, canterbury_centroid)
+
+co = filter(nz, grepl("Canter|Otag", Name))
+st_distance(nz_height[1:3, ], co)
+
+plot(st_geometry(co)[2])
+plot(st_geometry(nz_height)[2:3], add = TRUE)
+
+# DE-9IM strings
+xy2sfc = function(x, y) st_sfc(st_polygon(list(cbind(x, y))))
+x = xy2sfc(x = c(0, 0, 1, 1, 0), y = c(0, 1, 1, 0.5, 0))
+y = xy2sfc(x = c(0.7, 0.7, 0.9, 0.7), y = c(0.8, 0.5, 0.5, 0.8))
+st_relate(x, y)
+
+st_queen = function(x, y) st_relate(x, y, pattern = "F***T****")
+st_rook = function(x, y) st_relate(x, y, pattern = "F***T****")
+
+grid = st_make_grid(x, n = 3)
+grid_sf = st_sf(grid)
+grid_sf$queens = lengths(st_queen(grid, grid[5])) > 0
+plot(grid, col = grid_sf$queens)
+grid_sf$rooks = lengths(st_rook(grid, grid[5])) > 0
+plot(grid, col = grid_sf$rooks)
