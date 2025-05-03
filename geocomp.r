@@ -410,7 +410,7 @@ y = xy2sfc(x = c(0.7, 0.7, 0.9, 0.7), y = c(0.8, 0.5, 0.5, 0.8))
 st_relate(x, y)
 
 st_queen = function(x, y) st_relate(x, y, pattern = "F***T****")
-st_rook = function(x, y) st_relate(x, y, pattern = "F***T****")
+st_rook = function(x, y) st_relate(x, y, pattern = "F***1****")
 
 grid = st_make_grid(x, n = 3)
 grid_sf = st_sf(grid)
@@ -418,3 +418,34 @@ grid_sf$queens = lengths(st_queen(grid, grid[5])) > 0
 plot(grid, col = grid_sf$queens)
 grid_sf$rooks = lengths(st_rook(grid, grid[5])) > 0
 plot(grid, col = grid_sf$rooks)
+
+# Spatial joining
+set.seed(2018)
+(bb = st_bbox(world))
+random_df = data.frame(
+    x = runif(n = 10, min = bb[1], max = bb[3]),
+    y = runif(n = 10, min = bb[2], max = bb[4])
+)
+random_points = random_df %>% st_as_sf(coords = c("x", "y"), crs = "EPSG:4326")
+
+world_random = world[random_points, ]
+nrow(world_random)
+random_joined = st_join(random_points, world["name_long"])
+
+plot(st_geometry(cycle_hire), col = "blue")
+plot(st_geometry(cycle_hire_osm), add = TRUE, pch = 3, col = "red")
+
+sel = st_is_within_distance(cycle_hire, cycle_hire_osm, dist = units::set_units(20, "m"))
+summary(lengths(sel) > 0)
+
+z = st_join(cycle_hire, cycle_hire_osm, st_is_within_distance, dist = units::set_units(20, "m"))
+nrow(cycle_hire)
+nrow(z)
+
+z = z %>%
+    group_by(id) %>%
+    summarize(capacity = mean(capacity))
+nrow(z) == nrow(cycle_hire)
+
+plot(cycle_hire_osm["capacity"])
+plot(z["capacity"])
