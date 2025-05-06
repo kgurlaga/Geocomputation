@@ -449,3 +449,35 @@ nrow(z) == nrow(cycle_hire)
 
 plot(cycle_hire_osm["capacity"])
 plot(z["capacity"])
+
+# Spatial aggregation
+nz_agg = aggregate(x = nz_height, by = nz, FUN = mean)
+
+nz_agg2 = st_join(x = nz, y = nz_height) %>%
+    group_by(Name) %>%
+    summarize(elevation = mean(elevation, na.rm = TRUE))
+
+# Joining incongruent layers
+iv = incongruent["value"]
+agg_aw = st_interpolate_aw(iv, aggregating_zones, extensive = TRUE)
+agg_aw$value
+
+# Spatial operations on raster data
+elev = rast(system.file("raster/elev.tif", package="spData"))
+grain = rast(system.file("raster/grain.tif", package = "spData"))
+
+id = cellFromXY(elev, xy = matrix(c(0.1, 0.1), ncol = 2))
+elev[id]
+terra::extract(elev, matrix(c(0:1, 0.1), ncol = 2))
+
+clip = rast(xmin = 0.9, xmax = 1.8, ymin = -0.45, ymax = 0.45, resolution = 0.3, vals = rep(1, 9))
+plot(elev[clip])
+
+elev[1:2, drop = FALSE]
+
+rmask = elev
+values(rmask) = sample(c(NA, TRUE), 36, replace = TRUE)
+
+elev[rmask, drop = FALSE]
+
+elev[elev < 20] = NA
