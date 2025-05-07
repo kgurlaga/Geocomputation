@@ -481,3 +481,39 @@ values(rmask) = sample(c(NA, TRUE), 36, replace = TRUE)
 elev[rmask, drop = FALSE]
 
 elev[elev < 20] = NA
+
+# Local operations
+
+elev + elev
+elev^2
+log(elev)
+elev > 5
+
+rcl = matrix(c(0, 12, 1, 12, 24, 2, 24, 36, 3), ncol = 3, byrow = TRUE)
+recl = classify(elev, rcl = rcl)
+
+multi_raster_file = system.file("raster/landsat.tif", package = "spDataLarge")
+multi_rast = rast(multi_raster_file)
+plot(multi_rast)
+multi_rast = (multi_rast * 0.0000275) - 0.2
+multi_rast[multi_rast < 0] = 0
+ndvi_fun = function(nir, red) {
+    (nir - red) / (nir + red)
+}
+ndvi_rast = lapp(multi_rast[[c(4, 3)]], fun = ndvi_fun)
+plot(ndvi_rast)
+
+# Focal operations
+r_focal = focal(elev, w = matrix(1, nrow = 3, ncol = 3), fun = min)
+
+# Zonal operations
+z = zonal(elev, grain, fun = "mean")
+z
+
+# Merging raster
+aut = geodata::elevation_30s(country = "AUT", path = tempdir())
+plot(aut)
+ch = geodata::elevation_30s(country = "CHE", path = tempdir())
+plot(ch)
+aut_ch = merge(aut, ch)
+plot(aut_ch)
