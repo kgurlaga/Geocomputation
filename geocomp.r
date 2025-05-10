@@ -517,3 +517,32 @@ ch = geodata::elevation_30s(country = "CHE", path = tempdir())
 plot(ch)
 aut_ch = merge(aut, ch)
 plot(aut_ch)
+
+### Geometry operations
+
+library(sf)
+library(terra)
+library(dplyr)
+library(spData)
+library(spDataLarge)
+
+seine_simp = st_simplify(seine, dTolerance = 2000)
+object.size(seine)
+object.size(seine_simp)
+
+us_states_simp1 = st_simplify(us_states, dTolerance = 100000)
+
+us_states_simp2 = rmapshaper::ms_simplify(us_states, keep = 0.01, keep_shapes = TRUE)
+
+us_states_simp3 = smoothr::smooth(us_states, method = "ksmooth", smoothness = 6)
+
+# Centroids
+nz_centroid = st_centroid(nz)
+seine_centroid = st_centroid(seine)
+
+nz_pos = st_point_on_surface(nz)
+seine_pos = st_point_on_surface(seine)
+
+# Buffers
+seine_buff_5km = st_buffer(seine, dist = 5000)
+seine_buff_50km = st_buffer(seine, dist = 50000)
