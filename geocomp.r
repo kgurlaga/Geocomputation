@@ -607,3 +607,18 @@ p_xy2 = st_intersection(p, x_and_y)
 # way3 #
 sel_p_xy = st_intersects(p, x, sparse = FALSE)[, 1] & st_intersects(p, y, sparse = FALSE)[, 1]
 p_xy3 = p[sel_p_xy]
+
+# geometry unions #
+regions = aggregate(x = us_states[, "total_pop_15"], by = list(us_states$REGION), FUN = sum, na.rm = TRUE)
+regions2 = us_states %>%
+    group_by(REGION) %>%
+    summarize(pop = sum(total_pop_15, na.rm = TRUE))
+plot(regions2)
+
+us_west = us_states[us_states$REGION == "West", ]
+us_west_union = st_union(us_west)
+plot(us_west_union)
+
+texas = us_states[us_states$NAME == "Texas", ]
+texas_union = st_union(us_west_union, texas)
+plot(texas_union)
