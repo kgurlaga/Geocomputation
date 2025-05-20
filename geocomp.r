@@ -546,3 +546,64 @@ seine_pos = st_point_on_surface(seine)
 # Buffers
 seine_buff_5km = st_buffer(seine, dist = 5000)
 seine_buff_50km = st_buffer(seine, dist = 50000)
+
+# Affine transformations
+nz_sfc = st_geometry(nz)
+plot(nz_sfc)
+
+nz_shift = nz_sfc + c(0, 100000)
+
+nz_centroid_sfc = st_centroid(nz_sfc)
+nz_scale = (nz_sfc - nz_centroid_sfc)* 0.5 + nz_centroid_sfc
+plot(nz_scale)
+
+rotation = function(a) {
+    r = a * pi / 180
+    matrix(c(cos(r), sin(r), -sin(r), cos(r)), nrow = 2, ncol = 2)
+}
+
+nz_rotate = (nz_sfc - nz_centroid_sfc) * rotation(30) + nz_centroid_sfc
+plot(nz_rotate)
+
+nz_scale_sf = st_set_geometry(nz, nz_scale)
+
+# Clipping
+b = st_sfc(st_point(c(0, 1)), st_point(c(1, 1)))
+b = st_buffer(b, dist = 1)
+plot(b, border = "gray")
+text(x = c(-0.5, 1.5), y = 1, labels = c("x", "y"), cex = 3)
+
+x = b[1]
+y = b[2]
+x_and_y = st_intersection(x, y)
+plot(b, border = "gray")
+plot(x_and_y, col = "lightgray", border = "gray", add = TRUE)
+
+# Subsetting and clipping
+bb = st_bbox(st_union(x, y))
+box = st_as_sfc(bb)
+set.seed(2024)
+p = st_sample(x = box, size = 10)
+p_xy1 = p[x_and_y]
+plot(box, border = "gray", lty = 2)
+plot(x, add = TRUE, border = "gray")
+plot(y, add = TRUE, border = "gray")
+plot(p, add = TRUE, cex = 3.5)
+plot(p_xy1, cex = 5, col = "red", add = TRUE)
+text(x = c(-0.5, 1.5), y = 1, labels = c("x", "y"), cex = 3)
+
+bb = st_bbox(st_union(x, y))
+box = st_as_sfc(bb)
+set.seed(2024)
+p = st_sample(x = box, size = 10)
+x_and_y = st_intersection(x, y)
+
+# way1 #
+p_xy1 = p[x_and_y]
+
+# way2 #
+p_xy2 = st_intersection(p, x_and_y)
+
+# way3 #
+sel_p_xy = st_intersects(p, x, sparse = FALSE)[, 1] & st_intersects(p, y, sparse = FALSE)[, 1]
+p_xy3 = p[sel_p_xy]
