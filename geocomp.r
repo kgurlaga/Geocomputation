@@ -622,3 +622,72 @@ plot(us_west_union)
 texas = us_states[us_states$NAME == "Texas", ]
 texas_union = st_union(us_west_union, texas)
 plot(texas_union)
+
+# Type transformation
+# Stworzenie obiektu typu multipoint
+multipoint = st_multipoint(matrix(c(1, 3, 5, 1, 3, 1), ncol = 2))
+
+# Transformacja multipoint na linestring i poligon
+linestring = st_cast(multipoint, "LINESTRING")
+polyg = st_cast(multipoint, "POLYGON")
+
+# Transformacja z linestring, polygon na multipoint
+multipoint_2 = st_cast(linestring, "MULTIPOINT")
+multipoint_3 = st_cast(polyg, "MULTIPOINT")
+all.equal(multipoint, multipoint_2)
+all.equal(multipoint, multipoint_3)
+
+# Stworzenie obiektu typu multilinestring
+multilinestring_list = list(
+    matrix(c(1, 4, 5, 3), ncol = 2),
+    matrix(c(4, 4, 4, 1), ncol = 2), 
+    matrix(c(2, 4, 2, 2), ncol = 2))
+multilinestring = st_multilinestring(multilinestring_list)
+multilinestring_sf = st_sf(geom = st_sfc(multilinestring))
+
+# Rozdzielenie 3 linii na osobne obiekty
+linestring_sf2 = st_cast(multilinestring_sf, "LINESTRING")
+
+# Dodanie atrybutów do linii i obliczenie ich długości
+linestring_sf2$name = c("Riddle Rd", "Marshall Ave", "Foulke St")
+linestring_sf2$length = st_length(linestring_sf2)
+linestring_sf2
+
+### Operacje geometryczne na rastrach
+## Przecięcie
+elev = rast(system.file("raster/elev.tif", package = "spData"))
+clip = rast(xmin = 0.9, xmax = 1.8, ymin = -0.45, ymax = 0.45, resolution = 0.3, vals = rep(1, 9))
+elev[clip, drop = FALSE]
+
+## Zakres
+# Dodanie kolumny i wieresza do rastra
+elev = rast(system.file("raster/elev.tif", package = "spData"))
+elev_2 = extend(elev, c(1, 2))
+plot(elev)
+
+elev_3 = elev + elev_2
+
+# Dopasowanie rastra na podstawie już istniejącego
+elev_4 = extend(elev, elev_2)
+
+# punkt początkowy rastra
+origin(elev_4)
+origin(elev_4) = c(0.26, 0.25)
+
+## zmiana rozdzielczości
+dem = rast(system.file("raster/dem.tif", package = "spDataLarge"))
+dem_agg = aggregate(dem, fact = 5, fun = mean)
+
+dem_disagg = disagg(dem_agg, fact = 5, method = "bilinear")
+identical(dem, dem_disagg)
+
+## resampling
+
+# Stworzenie rastra
+target_rast <- rast(
+    xmin = 794650, xmax = 798250,
+    ymin = 8931750, ymax = 8935350,
+    resolution = 300, crs = "EPSG:32717"
+)
+
+dem_resampl = resample(dem, y = target_rast, method = "bilinear")
