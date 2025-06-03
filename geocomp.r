@@ -691,3 +691,65 @@ target_rast <- rast(
 )
 
 dem_resampl = resample(dem, y = target_rast, method = "bilinear")
+
+### Raster-wektor powiązanie
+library(sf)
+library(terra)
+library(dplyr)
+library(spDataLarge)
+
+## przycinanie rastra do zasięgu wektora
+
+# Wczytanie danych i transformacja do odpowiedniego układu współrzędnych
+srtm = rast(system.file("raster/srtm.tif", package = "spDataLarge"))
+zion = read_sf(system.file("vector/zion.gpkg", package = "spDataLarge"))
+zion = st_transform(zion, st_crs(srtm))
+
+# Przycięcie rastra
+srtm_cropped = crop(srtm, zion)
+
+# Maskowanie, piksele poza zasięgiem przyjmują wartość NA
+srtm_masked = mask(srtm, zion)
+
+srtm_cropped = crop(srtm, zion)
+srtm_final = mask(srtm_cropped, zion)
+
+# Odwrócenie maskowania
+srtm_inv_masked = mask(srtm, zion, inverse = TRUE)
+
+## Ekstrakcja rastra
+# Sampling rastra punktami
+data("zion_points", package = "spDataLarge")
+elevation = terra::extract(srtm, zion_points)
+zion_points = cbind(zion_points, elevation)
+
+# Sampling linią
+zion_transect <- cbind(c(-113.2, -112.9), c(37.45, 37.2)) |>
+    st_linestring() |>
+    st_sfc(crs = crs(srtm)) |>
+    st_sf(geometry = _)
+
+# Stworzenie punktów w bezpośrednim sąsiedztwie linii
+zion_transect$id = 1:nrow(zion_transect)
+zion_transect = st_segmentize(zion_transect, dfMaxLength = 250)
+zion_transect = st_cast(zion_transect, "POINT")
+
+zion_transect = zion_transect %>%
+    group_by(id) %>%
+    mutate(dist = st_distance(geometry)[, 1])
+
+zion_elev = terra::extract(srtm, zion_transect)
+zion_transect = cbind(zion_transect, zion_elev)
+
+# Sampling poligonem
+zion_srtm_values = terra::extract(x = srtm, y = zion)
+
+group_by(zion_srtm_values, ID) %>% summarize(across(srtm, list(min = min, mean = mean, max = max)))
+
+# Raster kategoryzowany
+nlcd = rast(system.file("raster/nlcd.tif", package = "spDataLarge"))
+zion2 = st_transform(zion, st_crs(nlcd))
+zion_nlcd = terra::extract(nlcd, zion2)
+zion_nlcd %>%
+    group_by(ID, levels) %>%
+    count()
