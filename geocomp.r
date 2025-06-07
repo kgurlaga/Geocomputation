@@ -753,3 +753,48 @@ zion_nlcd = terra::extract(nlcd, zion2)
 zion_nlcd %>%
     group_by(ID, levels) %>%
     count()
+
+
+## Rasteryzacja
+cycle_hire_osm = spData::cycle_hire_osm
+cycle_hire_osm_projected = st_transform(cycle_hire_osm, "EPSG:27700")
+raster_template = rast(ext(cycle_hire_osm_projected), resolution = 1000, crs = crs(cycle_hire_osm_projected))
+
+# Tworzenie rastra z wektora, czy wektor istnieje w danym miejscu czy nie
+ch_raster1 = rasterize(cycle_hire_osm_projected, raster_template)
+((ch_raster1))
+# Zliczenie występień wektora w komórce rastra
+ch_raster2 = rasterize(cycle_hire_osm_projected, raster_template, fun="length")
+plot(ch_raster2)
+
+# Rasteryzacja na podstawie atrybutu
+ch_raster3 = rasterize(cycle_hire_osm_projected, raster_template, field = "capacity", fun = sum, na.rm = TRUE)
+plot(ch_raster3)
+
+# Rasteryzacja linii
+california = dplyr::filter(us_states, NAME == "California")
+california_borders = st_cast(california, "MULTILINESTRING")
+raster_template2 = rast(ext(california), resolution = 0.5, crs = st_crs(california)$wkt)
+
+california_raster1 = rasterize(california_borders, raster_template2, touches = TRUE)
+
+# Rasteryzacja poligonowa
+california_raster2 = rasterize(california, raster_template2)
+plot(california_raster2)
+
+## Wektoryzacja
+# Zamiana rastra na wektor - punkt
+elev = rast(system.file("raster/elev.tif", package = "spData"))
+elev_point = as.points(elev) %>% st_as_sf()
+plot(elev_point)
+
+# Zamiana rastra na linie
+dem = rast(system.file("raster/dem.tif", package = "spDataLarge"))
+cl = as.contour(dem) %>% st_as_sf()
+plot(dem, axes = FALSE)
+plot(cl, add = TRUE)
+
+# Zamiana rastra na poligon
+grain = rast(system.file("raster/grain.tif", package = "spData"))
+grain_poly = as.polygons(grain) %>% st_as_sf()
+plot(grain_poly)
