@@ -798,3 +798,39 @@ plot(cl, add = TRUE)
 grain = rast(system.file("raster/grain.tif", package = "spData"))
 grain_poly = as.polygons(grain) %>% st_as_sf()
 plot(grain_poly)
+
+### Zmiana układów współrzędnych
+library(sf)
+library(terra)
+library(dplyr)
+library(spData)
+library(spDataLarge)
+
+## Układ współrzędnych (CRS)
+st_crs("EPSG:4326")
+st_crs("ESRI:54030")
+
+## Ustawienie systemu współrzędnych
+# Ustawienie dla wektorów
+vector_filepath = system.file("shapes/world.gpkg", package = "spData")
+new_vector = read_sf(vector_filepath)
+st_crs(new_vector)
+st_crs(new_vector)$IsGeographic
+st_crs(new_vector)$units_gdal
+st_crs(new_vector)$srid
+st_crs(new_vector)$proj4string
+
+new_vector = st_set_crs(new_vector, "EPSG:4326")
+
+# Ustawienie dla rastrów
+raster_filepath = system.file("raster/srtm.tif", package = "spDataLarge")
+my_rast = rast(raster_filepath)
+cat(crs(my_rast))
+crs(my_rast) = "EPSG:26912"
+
+# Nieznany crs
+london = data.frame(lon = -0.1, lat = 51.5) %>% st_as_sf(coords = c("lon", "lat"))
+st_is_longlat(london)
+
+london_geo = st_set_crs(london, "EPSG:4326")
+st_is_longlat(london_geo)
