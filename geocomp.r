@@ -834,3 +834,20 @@ st_is_longlat(london)
 
 london_geo = st_set_crs(london, "EPSG:4326")
 st_is_longlat(london_geo)
+
+
+## Operacje geometryczne na danych o nadanym układzie i nie
+
+# Stworzenie trzech buforów wokół Londyna
+london_buff_no_crs = st_buffer(london, dist = 1)
+london_buff_s2 = st_buffer(london_geo, dist = 100000)
+london_buff_s2_100_cells = st_buffer(london_geo, dist = 100000, max_cells = 100)
+
+sf::sf_use_s2(FALSE)
+london_buff_lonlat = st_buffer(london_geo, dist = 1)
+sf::sf_use_s2(TRUE)
+
+london_proj = data.frame(x = 530000, y = 180000) %>%
+    st_as_sf(coords = c("x", "y"), crs = "EPSG:27700")
+
+london_buff_projected = st_buffer(london_proj, 100000)
