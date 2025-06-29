@@ -805,6 +805,7 @@ library(terra)
 library(dplyr)
 library(spData)
 library(spDataLarge)
+library(stars)
 
 ## Układ współrzędnych (CRS)
 st_crs("EPSG:4326")
@@ -851,3 +852,87 @@ london_proj = data.frame(x = 530000, y = 180000) %>%
     st_as_sf(coords = c("x", "y"), crs = "EPSG:27700")
 
 london_buff_projected = st_buffer(london_proj, 100000)
+
+## Kiedy przeprowadzać transformację współrzędnych?
+st_distance(london_geo, london_proj)
+
+# UTM code
+lonlat2UTM = function(lonlat) {
+    utm = (floor((lonlat[1] + 180) / 6) %% 60) + 1
+    if (lonlat[2] > 0) {
+        utm + 32600
+    } else {
+        utm + 32700
+    }
+}
+
+lonlat2UTM(c(174.7, -36.9))
+lonlat2UTM(st_coordinates(london))
+
+## Reprojekcja wektorów
+london2 = st_transform(london_geo, "EPSG:27700")
+
+st_distance(london2, london_proj)
+
+st_crs(cycle_hire_osm)
+
+crs_lnd = st_crs(london_geo)
+class(crs_lnd)
+names(crs_lnd)
+
+crs_lnd$Name
+crs_lnd$proj4string
+crs_lnd$epsg
+
+cycle_hire_osm_projected = st_transform(cycle_hire_osm, "EPSG:27700")
+st_crs(cycle_hire_osm_projected)
+
+crs_lnd_new = st_crs("EPSG:27700")
+crs_lnd_new$Name
+crs_lnd_new$proj4string
+crs_lnd_new$epsg
+
+## Reprojekcja rastrów
+cat_raster = rast(system.file("raster/nlcd.tif", package = "spDataLarge"))
+plot(cat_raster)
+crs(cat_raster)
+unique(cat_raster)
+
+# reprojekcja kategorii
+cat_raster_wgs84 = project(cat_raster, "EPSG:4326", method = "near")
+
+# reprojekcja rastra numeric
+con_raster = rast(system.file("raster/srtm.tif", package = "spDataLarge"))
+plot(con_raster)
+
+con_raster_ea = project(con_raster, "EPSG:32612", method = "bilinear")
+cat(crs(con_raster_ea))
+
+## Customowe układy
+zion = read_sf(system.file("vector/zion.gpkg", package = "spDataLarge"))
+plot(zion)
+
+zion_centr = st_centroid(zion)
+zion_centr_wgs84 = st_transform(zion_centr, "EPSG:4326")
+st_as_text(st_geometry(zion_centr_wgs84))
+
+my_wkt = 'PROJCS["Custom_AEQD",
+ GEOGCS["GCS_WGS_1984",
+  DATUM["WGS_1984",
+   SPHEROID["WGS_1984",6378137.0,298.257223563]],
+  PRIMEM["Greenwich",0.0],
+  UNIT["Degree",0.0174532925199433]],
+ PROJECTION["Azimuthal_Equidistant"],
+ PARAMETER["Central_Meridian",-113.0263],
+ PARAMETER["Latitude_Of_Origin",37.29818],
+ UNIT["Meter",1.0]]'
+
+ zion_aeqd = st_transform(zion, my_wkt)
+
+world_mollweide = st_transform(world, crs = "+proj=moll")
+plot(world_mollweide)
+
+world_wintri = st_transform(world, crs = "+proj=wintri")
+
+world_laea2 = st_transform(world, crs = "+proj=laea +x_0=0 +y_0=0 +lon_0=-74 +lat_0=40")
+plot(world_laea2)
