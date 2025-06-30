@@ -936,3 +936,59 @@ world_wintri = st_transform(world, crs = "+proj=wintri")
 
 world_laea2 = st_transform(world, crs = "+proj=laea +x_0=0 +y_0=0 +lon_0=-74 +lat_0=40")
 plot(world_laea2)
+
+
+### Geographic data I/O
+library(sf)
+library(terra)
+library(dplyr)
+library(spData)
+
+## File formats
+
+## Data input
+sf_drivers = st_drivers()
+head(sf_drivers, n = 3)
+summary(sf_drivers[-c(1:2)])
+
+f = system.file("shapes/world.gpkg", package = "spData")
+world = read_sf(f)
+plot(world[1])
+
+tanzania = read_sf(f, query='SELECT * FROM world WHERE name_long = "Tanzania"')
+plot(tanzania[1])
+
+tanzania_buf = st_buffer(tanzania, 50000)
+tanzania_buf_geom = st_geometry(tanzania_buf)
+tanzania_buf_wkt = st_as_text(tanzania_buf_geom)
+tanzania_neigh = read_sf(f, wkt_filter = tanzania_buf_wkt)
+plot(tanzania_neigh[1])
+
+cycle_hire_txt = system.file("misc/cycle_hire_xy.csv", package = "spData")
+cycle_hire_xy = read_sf(cycle_hire_txt, options = c("X_POSSIBLE_NAMES=X", "Y_POSSIBLE_NAMES=Y"))
+
+world_txt = system.file("misc/world_wkt.csv", package = "spData")
+world_wkt = read_sf(world_txt, options = "GEOM_POSSIBLE_NAMES=WKT")
+plot(world_wkt[1])
+
+u = "https://developers.google.com/kml/documentation/KML_Samples.kml"
+download.file(u, "KML_Samples.kml")
+st_layers("KML_Samples.kml")
+kml = read_sf("KML_Samples.kml", layer = "Google Campus")
+plot(kml[1])
+
+raster_filepath = system.file("raster/srtm.tif", package = "spDataLarge")
+single_layer = rast(raster_filepath)
+plot(single_layer)
+
+multilayer_filepath = system.file("raster/landsat.tif", package = "spDataLarge")
+multilayer_rast = rast(multilayer_filepath)
+plot(multilayer_rast)
+
+myurl = paste0(
+    "/vsicurl/https://zenodo.org/record/5774954/files/",
+    "clm_snow.prob_esacci.dec_p.90_500m_s0..0cm_2000..2012_v2.0.tif")
+snow = rast(myurl)
+
+rey = data.frame(lon = -21.94, lat = 64.15)
+snow_rey = extract(snow, rey)
