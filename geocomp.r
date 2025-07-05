@@ -1080,4 +1080,41 @@ tmap_save(tmap_obj, filename = "lifeExp_tmap.png")
 
 library(mapview)
 mapview_obj = mapview(world, zcol = "lifeExp", legend = TRUE)
-mapshot2(mapview_obj, url="my_interactive_map.html")
+mapshot2(mapview_obj, url = "my_interactive_map.html")
+
+###Making maps
+library(sf)
+library(terra)
+library(dplyr)
+library(spData)
+library(spDataLarge)
+
+install.packages("tmap", repos = c(
+    "https://r-tmap.r-universe.dev",
+    "https://cloud.r-project.org"
+))
+
+library(tmap)
+library(leaflet)
+library(ggplot2)
+
+nz_elev = rast(system.file("raster/nz_elev.tif", package = "spDataLarge")
+
+tm_shape(nz) + tm_fill()
+tm_shape(nz) + tm_borders()
+tm_shape(nz) + tm_fill() + tm_borders()
+
+map_nz = tm_shape(nz) + tm_polygons()
+class(map_nz)
+
+map_nz1 = map_nz + tm_shape(nz_elev) + tm_raster(col_alpha = 0.7)
+
+nz_water = st_union(nz) %>%
+    st_buffer(22200) %>%
+    st_cast(to = "LINESTRING")
+map_nz2 = map_nz1 + tm_shape(nz_water) + tm_lines()
+
+map_nz3 = map_nz2 + tm_shape(nz_height) + tm_symbols()
+
+tmap_arrange(map_nz1, map_nz2, map_nz3)
+
