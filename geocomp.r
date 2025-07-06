@@ -1098,7 +1098,7 @@ library(tmap)
 library(leaflet)
 library(ggplot2)
 
-nz_elev = rast(system.file("raster/nz_elev.tif", package = "spDataLarge")
+nz_elev = rast(system.file("raster/nz_elev.tif", package = "spDataLarge"))
 
 tm_shape(nz) + tm_fill()
 tm_shape(nz) + tm_borders()
@@ -1118,3 +1118,75 @@ map_nz3 = map_nz2 + tm_shape(nz_height) + tm_symbols()
 
 tmap_arrange(map_nz1, map_nz2, map_nz3)
 
+ma1 = tm_shape(nz) + tm_polygons(fill = "red")
+ma2 = tm_shape(nz) + tm_polygons(fill = "red", fill_alpha = 0.3)
+ma3 = tm_shape(nz) + tm_polygons(col = "blue")
+ma4 = tm_shape(nz) + tm_polygons(lwd = 3)
+ma5 = tm_shape(nz) + tm_polygons(lty = 2)
+ma6 = tm_shape(nz) + tm_polygons(fill = "red", fill_alpha = 0.3, col = "blue", lwd = 3, lty = 2)
+tmap_arrange(ma1, ma2, ma3, ma4, ma5, ma6)
+
+plot(st_geometry(nz), col = nz$Land_area)
+tm_shape(nz) + tm_fill(fill = nz$Land_area)
+
+tm_shape(nz) + tm_fill(fill = "Land_area")
+
+tm_shape(nz) + tm_polygons(fill = "Median_income")
+tm_shape(nz) + tm_polygons(fill = "Median_income", fill.scale = tm_scale(breaks = c(0, 30000, 40000, 50000)))
+tm_shape(nz) + tm_polygons(fill = "Median_income", fill.scale = tm_scale(n = 10))
+tm_shape(nz) + tm_polygons(fill = "Median_income", fill.scale = tm_scale(values = "BuGn"))
+
+tm_shape(nz) + tm_polygons("Median_income", fill.scale = tm_scale(values = "greens"))
+tm_shape(nz) + tm_polygons("Median_income", fill.scale = tm_scale(values = "yl_gn_bu"))
+
+tm_shape(nz) + tm_polygons("Median_income", fill.scale = tm_scale_continuous(values = "pu_gn_div", midpoint = 28000))
+
+legend_title = expression("Area (km"^2*")")
+tm_shape(nz) + tm_polygons(fill = "Land_area", fill.legend = tm_legend(title = legend_title))
+
+tm_shape(nz) + tm_polygons(fill = "Land_area", fill.legend = tm_legend(title = legend_title, orientation = "landscape", position = tm_pos_out("center", "bottom")))
+
+map_nz + tm_graticules() + tm_compass(type = "8star", position = c("left", "top")) + tm_scalebar(breaks = c(0, 100, 200), text.size = 1, position = c("left", "top")) + tm_title("New Zealand")
+
+map_nz + tm_layout(scale = 4)
+map_nz + tm_layout(bg.color = "lightblue")
+map_nz + tm_layout(frame = FALSE)
+
+urb_1970_2030 = urban_agglomerations %>% filter(year %in% c(1970, 1990, 2010, 2030))
+tm_shape(world) + tm_polygons() + tm_shape(urb_1970_2030) + tm_symbols(fill = "black", col = "white", size = "population_millions") + tm_facets_wrap(by = "year", nrow = 2)
+
+nz_region = st_bbox(c(xmin = 1340000, xmax = 1450000, ymin = 5130000, ymax = 5210000), crs = st_crs(nz_height)) %>% st_as_sfc()
+
+nz_height_map = tm_shape(nz_elev, bbox = nz_region) + tm_raster(col.scale = tm_scale_continuous(values = "YlGn"), col.legend = tm_legend(position = c("left", "top"))) + tm_shape(nz_height) + tm_symbols(shape = 2, col = "red", size = 1) + tm_scalebar(position = c("left", "bottom"))
+
+nz_map = tm_shape(nz) + tm_polygons() + tm_shape(nz_height) + tm_symbols(shape = 2, col = "red", size = 0.1) + tm_shape(nz_region) + tm_borders(lwd = 3) + tm_layout(bg.color = "lightblue")
+
+library(grid)
+norm_dim = function(obj){
+    bbox = st_bbox(obj)
+    width = bbox[["xmax"]] - bbox[["xmin"]]
+    height = bbox[["ymax"]] - bbox[["ymin"]]
+    w = width / max(width, height)
+    h = height / max(width, height)
+    return(unit(c(w, h), "snpc"))
+}
+main_dim = norm_dim(nz_region)
+ins_dim = norm_dim(nz)
+
+main_vp = viewport(width = main_dim[1], height = main_dim[2])
+
+ins_vp = viewport(width = ins_dim[1] * 0.5, height = ins_dim[2] * 0.5, x = unit(1, "npc") - unit(0.5, "cm"), y = unit(0.5, "cm"), just = c("right", "bottom"))
+
+grid.newpage()
+print(nz_height_map, vp = main_vp)
+pushViewport(main_vp)
+print(nz_map, vp = ins_vp)
+
+us_states_map = tm_shape(us_states, crs = "EPSG:9311") + tm_polygons() + tm_layout(frame = FALSE)
+
+hawaii_map = tm_shape(hawaii) + tm_polygons() + tm_title("Hawaii") + tm_layout(frame = FALSE, bg.color = "black")
+alaska_map = tm_shape(alaska) + tm_polygons() + tm_title("Alaska") + tm_layout(frame = FALSE, bg.color = "black")
+
+us_states_map
+print(hawaii_map, vp = grid::viewport(0.45, 0.1, width = 0.2, height = 0.1))
+print(alaska_map, vp = grid::viewport(0.15, 0.15, width = 0.3, height = 0.3))
