@@ -1190,3 +1190,45 @@ alaska_map = tm_shape(alaska) + tm_polygons() + tm_title("Alaska") + tm_layout(f
 us_states_map
 print(hawaii_map, vp = grid::viewport(0.45, 0.1, width = 0.2, height = 0.1))
 print(alaska_map, vp = grid::viewport(0.15, 0.15, width = 0.3, height = 0.3))
+
+urb_anim = tm_shape(world) + tm_polygons() + tm_shape(urban_agglomerations) + tm_symbols(size = "population_millions") + tm_facets_wrap(by = "year", nrow = 1, ncol = 1, free.coords = FALSE)
+tmap_animation(urb_anim, filename = "urb_anim.gif", delay = 2)
+
+tmap_mode("view")
+map_nz
+
+map_nz + tm_basemap(server = "OpenTopoMap")
+
+world_coffee = left_join(world, coffee_data, by = "name_long")
+facets = c("coffee_production_2016", "coffee_production_2017")
+tm_shape(world_coffee) + tm_polygons(facets) + tm_facets_wrap(nrow = 1, sync = TRUE)
+
+tmap_mode("plot")
+mapview::mapview(nz)
+
+library(mapview)
+oberfranken = subset(franconia, district == "Oberfranken")
+trails %>%
+    st_transform(st_crs(oberfranken)) %>%
+    st_intersection(oberfranken) %>%
+    st_collection_extract("LINESTRING") %>%
+    mapview(color = "red", lwd = 3, layer.name = "trails") +
+    mapview(franconia, zcol = "district") +
+    breweries
+
+library(mapdeck)
+set_token(Sys.getenv("MAPBOX"))
+crash_data = read.csv("https://git.io/geocompr-mapdeck")
+crash_data = na.omit(crash_data)
+ms = mapdeck_style("dark")
+mapdeck(style = ms, pitch = 45, location = c(0, 52), zoom = 4) %>%
+    add_grid(data = crash_data, lat = "lat", lon = "lng", cell_size = 1000, elevation_scale = 50, colour_range = hcl.colors(6, "plasma"))
+
+pal = colorNumeric("RdYlBu", domain = cycle_hire$nbikes)
+leaflet(data = cycle_hire) |>
+    addProviderTiles(providers$CartoDB.Positron) |>
+    addCircles(col = ~ pal(nbikes), opacity = 0.9) |>
+    addPolygons(data = lnd, fill = FALSE) |>
+    addLegend(pal = pal, values = ~nbikes) |>
+    setView(lng = -0.1, 51.5, zoom = 12) |>
+    addMiniMap()
