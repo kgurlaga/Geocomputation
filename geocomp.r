@@ -1250,3 +1250,30 @@ server = function(input, output) {
 }
 shinyApp(ui, server)
 
+g = st_graticule(nz, lon = c(170, 175), lat = c(-45, -40, -35))
+plot(nz_water, graticule = g, axes = TRUE, col = "blue")
+terra::plot(nz_elev / 1000, add = TRUE, axes = FALSE)
+plot(st_geometry(nz), add = TRUE)
+
+library(ggplot2)
+g1 = ggplot() +
+    geom_sf(data = nz, aes(fill = Median_income)) +
+    geom_sf(data = nz_height) +
+    scale_x_continuous(breaks = c(170, 175))
+g1
+
+library(ggspatial)
+ggplot() +
+    layer_spatial(nz_elev) +
+    geom_sf(data = nz, fill = NA) +
+    annotation_scale() +
+    scale_x_continuous(breaks = c(170, 175)) +
+    scale_fill_continuous(na.value = NA)
+
+library(cartogram)
+nz_carto = cartogram_cont(nz, "Median_income", itermax = 5)
+tm_shape(nz_carto) + tm_polygons("Median_income")
+
+us_states9311 = st_transform(us_states, "EPSG:9311")
+us_states9311_ncont = cartogram_ncont(us_states9311, "total_pop_15")
+us_states9311_dorling = cartogram_dorling(us_states9311, "total_pop_15")
