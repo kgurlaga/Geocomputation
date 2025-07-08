@@ -1232,3 +1232,21 @@ leaflet(data = cycle_hire) |>
     addLegend(pal = pal, values = ~nbikes) |>
     setView(lng = -0.1, 51.5, zoom = 12) |>
     addMiniMap()
+
+
+library(shiny)
+library(leaflet)
+library(spData)
+ui = fluidPage(
+    sliderInput(inputId = "life", "Life expectancy", 49, 84, value = 80),
+    leafletOutput(output = "map")
+)
+server = function(input, output) {
+    output$map = renderLeaflet({
+        leaflet() %>%
+            # addProviderTiles("OpenStreetMap.BlackAndWhite") %>%
+            addPolygons(data = world[world$lifeExp < input$life, ])
+    })
+}
+shinyApp(ui, server)
+
