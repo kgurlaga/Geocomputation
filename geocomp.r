@@ -1317,9 +1317,16 @@ clean_sf = st_as_sf(clean)
 plot(clean_sf[1])
 
 
-dem = system.file("raster/dem.tif", package = "spData")
+dem <- system.file("raster/dem.tif", package = "spDataLarge")
 
 qgis_search_algorithms("wetness") %>%
     dplyr::select(provider_title, algorithm) %>%
     head(2)
 qgis_show_help("sagang:sagawetnessindex")
+
+options(qgisprocess.tmp_raster_ext = ".sdat")
+dem_wetness = qgis_run_algorithm("sagang:sagawetnessindex",
+    DEM = dem
+)
+
+dem_wetness_twi = qgis_as_terra(dem_wetness$TWI)
