@@ -1277,3 +1277,49 @@ tm_shape(nz_carto) + tm_polygons("Median_income")
 us_states9311 = st_transform(us_states, "EPSG:9311")
 us_states9311_ncont = cartogram_ncont(us_states9311, "total_pop_15")
 us_states9311_dorling = cartogram_dorling(us_states9311, "total_pop_15")
+
+###Bridges to GIS software
+library(sf)
+library(terra)
+library(qgisprocess)
+library(Rsagacmd)
+library(rgrass)
+library(rstac)
+library(gdalcubes)
+library(dplyr)
+
+
+data("incongruent", "aggregating_zones", package = "spData")
+incongr_wgs = st_transform(incongruent, "EPSG:4326")
+aggzone_wgs = st_transform(aggregating_zones, "EPSG:4326")
+
+qgis_algorithms()
+qgis_search_algorithms("union")
+
+alg = "native:union"
+union_arguments = qgis_get_argument_specs(alg)
+union_arguments
+
+union = qgis_run_algorithm(alg, INPUT = incongr_wgs, OVERLAY = aggzone_wgs)
+union
+union_sf = st_as_sf(union)
+plot(union_sf[1])
+
+qgis_search_algorithms("clean")
+qgis_show_help("grass:v.clean")
+
+qgis_get_argument_specs("grass:v.clean") |>
+    select(name, description) |>
+    slice_head(n = 4)
+
+clean = qgis_run_algorithm("grass:v.clean", input = union_sf, tool = "rmarea", threshold = 25000)
+clean_sf = st_as_sf(clean)
+plot(clean_sf[1])
+
+
+dem = system.file("raster/dem.tif", package = "spData")
+
+qgis_search_algorithms("wetness") %>%
+    dplyr::select(provider_title, algorithm) %>%
+    head(2)
+qgis_show_help("sagang:sagawetnessindex")
