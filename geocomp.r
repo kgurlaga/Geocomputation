@@ -1330,3 +1330,12 @@ dem_wetness = qgis_run_algorithm("sagang:sagawetnessindex",
 )
 
 dem_wetness_twi = qgis_as_terra(dem_wetness$TWI)
+plot(dem_wetness_twi)
+options(qgisprocess.tmp_raster_ext = ".tif")
+
+qgis_search_algorithms("geomorphon")
+qgis_show_help("grass:r.geomorphon")
+
+dem_geomorph = qgis_run_algorithm("grass:r.geomorphon", elevation = dem, '-m' = TRUE, search = 120)
+dem_geomorph_terra = qgis_as_terra(dem_geomorph$forms)
+plot(dem_geomorph_terra)
