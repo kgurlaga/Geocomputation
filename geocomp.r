@@ -1358,3 +1358,46 @@ ndvi_segments = ndvi_srg$segments %>%
     as.polygons() %>%
     st_as_sf()
 plot(ndvi_segments)
+
+## GRASS GIS
+data("cycle_hire", package = "spData")
+points = cycle_hire[1:25, ]
+
+library(osmdata)
+b_box = st_bbox(points)
+london_streets <- opq(b_box) |>
+    add_osm_feature(key = "highway") |>
+    osmdata_sf()
+london_streets = london_streets[["osm_lines"]]
+london_streets = select(london_streets, osm_id)
+
+library(rgrass)
+library(link2GI)
+initGRASS(
+    gisBase = "C:/OSGeo4W/apps/grass/grass84", # folder instalacji GRASS GIS
+    home = tempdir(), # katalog tymczasowy użytkownika
+    gisDbase = "C:/temp/grassdata", # folder z danymi GRASS (musisz go mieć)
+    location = "london", # nazwa lokalizacji GRASS (np. "london")
+    mapset = "PERMANENT", # nazwa mapsetu
+    override = TRUE
+)
+
+write_VECT(terra::vect(london_streets), vname = "london_streets")
+write_VECT(terra:vect(points[, 1]), vname = "points")
+
+execGRASS(
+    cmd = "v.clean", input = "london_streets", output = "streets_clean", tool = "break", flags = "overwrite"
+)
+
+execGRASS(
+    cmd = "v.net", input = "streets_clean", output = "streets_points_con", points = "points", operation = "connec", threshold = 0.001, flags = c("overwrite", "c")
+)
+
+execGRASSS(
+    cmd = "v.net.salesman", input = "streets_points_con", output = "shortest_route", center_cats = paste0("1-", nrow(points)), flags = "overwrite"
+)
+
+route = read_VECT("shortest_route") %>%
+    st_as_sf() %>%
+    st_geometry()
+mapview::mapview(route) + points
