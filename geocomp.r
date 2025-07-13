@@ -1339,3 +1339,22 @@ qgis_show_help("grass:r.geomorphon")
 dem_geomorph = qgis_run_algorithm("grass:r.geomorphon", elevation = dem, '-m' = TRUE, search = 120)
 dem_geomorph_terra = qgis_as_terra(dem_geomorph$forms)
 plot(dem_geomorph_terra)
+
+##SAGA
+ndvi = rast(system.file("raster/ndvi.tif", package = "spDataLarge"))
+
+library(Rsagacmd)
+saga = saga_gis(raster_backend = "terra", vector_backend = "sf")
+
+sg = saga$imagery_segmentation$seed_generation
+ndvi_seeds = sg(ndvi, band_width = 2)
+plot(ndvi_seeds$seed_grid)
+
+srg = saga$imagery_segmentation$seeded_region_growing
+ndvi_srg = srg(ndvi_seeds$seed_grid, ndvi, method = 1)
+plot(ndvi_srg$segments)
+
+ndvi_segments = ndvi_srg$segments %>%
+    as.polygons() %>%
+    st_as_sf()
+plot(ndvi_segments)
