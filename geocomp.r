@@ -1440,3 +1440,48 @@ hardees = read_sf(conn, query = query)
 
 RPostgreSQL::postgresqlCloneConnection(conn)
 
+## STAC, COGs
+library(rstac)
+s = stac("https://earth-search.aws.element84.com/v0")
+items <- s |>
+    stac_search(
+        collections = "sentinel-s2-l2a-cogs",
+        bbox = c(7.1, 51.8, 7.2, 52.8),
+        datetime = "2020-01-01/2020-12-31"
+    ) |>
+    post_request() |>
+    items_fetch()
+
+library(gdalcubes)
+cloud_filter = function(x) {
+    x[["eo:cloud_cover"]] < 10
+}
+collection = stac_image_collection(items$features, property_filter = cloud_filter)
+
+v = cube_view(srs = "EPSG:3857", extent = collection, dx = 250, dy = 250, dt = "P1D")
+cube = raster_cube(collection, v) %>%
+    select_bands(c("B04", "B08")) %>%
+    apply_pixel("(B08-B04)/(B08+B04)", "NDVI") %>%
+    reduce_time("max(NDVI)")
+gdalcubes_options(parallel = 8)
+plot(cube, zlim = c(0, 1))
+
+library(openeo)
+con = connect(host = "https://openeo.cloud")
+p = processes()
+collections = list_collections()
+formats = list_file_formats()
+s2 = p$load_collection(id = "SENTINEL2_L2A", spatial_extent = list(west = 7.5, east = 8.5, north = 51.1, south = 50.1), temporal_extent = list("2021-01-01", "2021-01-31"), bands = list("B04", "B08"))
+compute_ndvi = p$reduce_dimension(data = s2, dimension = "bands", reducer = function(data, context){
+    (data[2] - data[1]) / (data[2] + data[1])
+})
+reduce_max = p$reduce_dimension(data = compute_ndvi, dimension = "t", reducer = function(x, y) {
+    max(x)
+})
+
+result = p$save_result(reduce_max, formats$output$GTiff)
+login(
+    login_type = "oidc", provider = "egi",
+    config = list(client_id = "...", secret = "...")
+)
+compute_result(graph = result, output_file = tempfile(fileext = ".tif"))
