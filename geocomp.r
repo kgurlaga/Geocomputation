@@ -1408,3 +1408,35 @@ link2GI::linkGDAL()
 our_filepath = system.file("shapes/world.gpkg", package = "spData")
 cmd = paste("ogrinfo -al -so", our_filepath)
 system(cmd)
+
+library(RPostgreSQL)
+conn = dbConnect(
+    drv = PostgreSQL(),
+    dbname = "rtafdf_zljbqm", host = "db.qgiscloud.com",
+    port = "5432", user = "rtafdf_zljbqm", password = "d3290ead"
+)
+dbListTables(conn)
+dbListFields(conn, "highways")
+
+query = paste("SELECT *", "FROM highways", "WHERE name = 'US Route 1' AND state = 'MD';")
+us_route = read_sf(conn, query = query, geom = "wkb_geometry")
+
+query = paste("SELECT ST_Union(ST_Buffer(wkb_geometry, 35000))::geometry", "FROM highways", "WHERE name = 'US Route 1' AND state = 'MD'")
+buf = read_sf(conn, query = query)
+
+query <- paste(
+    "SELECT *",
+    "FROM restaurants r",
+    "WHERE EXISTS (",
+    "SELECT gid",
+    "FROM highways",
+    "WHERE",
+    "ST_DWithin(r.wkb_geometry, wkb_geometry, 35000) AND",
+    "name = 'US Route 1' AND",
+    "state = 'MD' AND",
+    "r.franchise = 'HDE');"
+)
+hardees = read_sf(conn, query = query)
+
+RPostgreSQL::postgresqlCloneConnection(conn)
+
