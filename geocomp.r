@@ -1401,3 +1401,10 @@ route = read_VECT("shortest_route") %>%
     st_as_sf() %>%
     st_geometry()
 mapview::mapview(route) + points
+
+##GDAL
+link2GI::linkGDAL()
+
+our_filepath = system.file("shapes/world.gpkg", package = "spData")
+cmd = paste("ogrinfo -al -so", our_filepath)
+system(cmd)
