@@ -1547,3 +1547,34 @@ poly_centroid_sfg = function(x) {
 
 poly_sfc = sf::st_polygon(list(poly_mat))
 identical(poly_centroid_sfg(poly_mat), sf::st_centroid(poly_sfc))
+
+### STATISTICAL LEARNING
+library(sf)
+library(terra)
+library(dplyr)
+library(future)
+library(lgr)
+library(mlr3)
+library(mlr3learners)
+library(mlr3extralearners)
+library(mlr3proba)
+library(mlr3spatiotempcv)
+library(mlr3tuning)
+library(mlr3viz)
+library(progressr)
+library(pROC)
+
+data("lsl", "study_mask", package = "spDataLarge")
+ta = terra::rast(system.file("raster/ta.tif", package = "spDataLarge"))
+
+fit = glm(lslpts ~ slope + cplan + cprof + elev + log10_carea, family = binomial(), data = lsl)
+
+summary(fit)
+
+pred_glm = predict(object = fit, type = "response")
+head(pred_glm)
+
+pred = terra::predict(ta, model = fit, type = "response")
+plot(pred)
+
+pROC::auc(pROC::roc(lsl$lslpts, fitted(fit)))
