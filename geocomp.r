@@ -1578,3 +1578,30 @@ pred = terra::predict(ta, model = fit, type = "response")
 plot(pred)
 
 pROC::auc(pROC::roc(lsl$lslpts, fitted(fit)))
+
+task = mlr3spatiotempcv::as_task_classif_st(
+    mlr3::as_data_backend(lsl),
+    target = "lslpts",
+    id = "ecuador_lsl",
+    positive = "TRUE",
+    coordinate_names = c("x", "y"),
+    crs = "EPSG:32717",
+    coords_as_features = FALSE
+)
+
+mlr3viz::autoplot(task, type = "duo")
+mlr3viz::autoplot(task, type = "pairs")
+
+mlr3extralearners::list_mlr3learners(
+    filter = list(class = "classif", properties = "twoclass"),
+    select = c("id", "mlr3_package", "required_packages"))  %>% head()
+
+learner = mlr3::lrn("classif.log_reg", predict_type = "prob")
+
+resampling = mlr3::rsmp("repeated_spcv_coords", folds = 5, repeats = 100)
+
+lgr::get_logger("mlr3")$set_threshold("warn")
+rr_spcv_glm = mlr3::resample(task = task, learner = learner, resampling = resampling)
+score_spcv_glm = rr_spcv_glm$score(measure = mlr3::msr("classif.auc"))
+score_spcv_glm = dplyr::select(score_spcv_glm, task_id, learner_id, resampling_id, classif.auc)
+
