@@ -1605,3 +1605,66 @@ rr_spcv_glm = mlr3::resample(task = task, learner = learner, resampling = resamp
 score_spcv_glm = rr_spcv_glm$score(measure = mlr3::msr("classif.auc"))
 score_spcv_glm = dplyr::select(score_spcv_glm, task_id, learner_id, resampling_id, classif.auc)
 
+mlr3_learners = mlr3extralearners::list_mlr3learners()
+mlr3_learners |>
+  dplyr::filter(class == "classif" & grepl("svm", id)) |>
+  dplyr::select(id, class, mlr3_package, required_packages)
+
+lrn_ksvm = mlr3::lrn("classif.ksvm", predict_type = "prob", kernel = "rbfdot", type = "C-svc")
+lrn_ksvm$encapsulate(
+    method = "try",
+    fallback = lrn("classif.featureless",
+        predict_type = "prob"
+    )
+)
+
+perf_level = mlr3::rsmp("repeated_spcv_coords", folds = 5, repeats = 100)
+
+# five spatially disjoint partitions
+tune_level = mlr3::rsmp("spcv_coords", folds = 5)
+# define the outer limits of the randomly selected hyperparameters
+search_space = paradox::ps(C = paradox::p_dbl(lower = -12, upper = 15, trafo = function(x) 2^x), sigma = paradox::p_dbl(lower = -15, upper = 6, trafo = function(x) 2^x))
+# use 50 randomly selected hyperparameters
+terminator = mlr3tuning::trm("evals", n_evals = 50)
+tuner = mlr3tuning::tnr("random_search")
+
+at_ksvm = mlr3tuning::auto_tuner(
+    learner = lrn_ksvm,
+    resampling = tune_level,
+    measure = mlr3::msr("classif.auc"),
+    search_space = search_space,
+    terminator = terminator,
+    tuner = tuner
+)
+
+library(future)
+# execute the outer loop sequentially and parallelize the inner loop
+future::plan(list("sequential", "multisession"), workers = floor(availableCores() / 2))
+
+progressr::with_progress(expr = {
+    rr_spcv_svm <- mlr3::resample(
+        task = task,
+        learner = at_ksvm,
+        # outer resampling (performance level)
+        resampling = perf_level,
+        store_models = FALSE,
+        encapsulate = "evaluate"
+    )
+})
+# stop parallelization
+future:::ClusterRegistry("stop")
+# compute the AUROC values
+score_spcv_svm <- rr_spcv_svm$score(measure = mlr3::msr("classif.auc"))
+# keep only the columns you need
+score_spcv_svm <- dplyr::select(
+    score_spcv_svm, task_id, learner_id,
+    resampling_id, classif.auc
+)
+
+score = readRDS("extdata/12-bmr_score.rds")
+score_spcv_svm <- dplyr::filter(
+    score, learner_id == "classif.ksvm.tuned",
+    resampling_id == "repeated_spcv_coords"
+)
+
+round(mean(score_spcv_svm$classif.auc), 2)
