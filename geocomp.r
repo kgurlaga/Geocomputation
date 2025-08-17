@@ -1668,3 +1668,38 @@ score_spcv_svm <- dplyr::filter(
 )
 
 round(mean(score_spcv_svm$classif.auc), 2)
+
+
+### Transportation
+library(sf)
+library(dplyr)
+library(spDataLarge)
+library(stplanr) # for processing geographic transport data
+library(tmap) # map-making (see Chapter 9)
+library(ggplot2) # data visualization package
+library(sfnetworks) # spatial network classes and functions
+
+names(bristol_zones)
+
+nrow(bristol_od)
+nrow(bristol_zones)
+
+zones_attr = bristol_od %>%
+    group_by(o) %>%
+    summarize(across(where(is.numeric), sum)) %>%
+    dplyr::rename(geo_code = o)
+
+summary(zones_attr$geo_code %in% bristol_zones$geo_code)
+
+zones_joined = left_join(bristol_zones, zones_attr, by = "geo_code")
+sum(zones_joined$all)
+names(zones_joined)
+
+zones_destinations = bristol_od %>%
+    group_by(d) %>%
+    summarize(across(where(is.numeric), sum)) %>%
+    select(geo_code = d, all_dest = all)
+zones_od = inner_join(zones_joined, zones_destinations, by = "geo_code")
+
+qtm(zones_od, c("all", "all_dest")) + tm_layout(panel.labels = c("Origin", "Destination"))
+
