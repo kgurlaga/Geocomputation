@@ -1703,3 +1703,13 @@ zones_od = inner_join(zones_joined, zones_destinations, by = "geo_code")
 
 qtm(zones_od, c("all", "all_dest")) + tm_layout(panel.labels = c("Origin", "Destination"))
 
+####
+od_top5 = bristol_od %>% slice_max(all, n = 5)
+
+bristol_od$Active = (bristol_od$bicycle + bristol_od$foot) / bristol_od$all * 100
+
+od_intra = filter(bristol_od, o == d)
+od_inter = filter(bristol_od, o != d)
+
+desire_lines = od2line(od_inter, zones_od)
+qtm(desire_lines, lwd = "all")
