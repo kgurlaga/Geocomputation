@@ -730,7 +730,7 @@ zion_transect <- cbind(c(-113.2, -112.9), c(37.45, 37.2)) |>
     st_sf(geometry = _)
 
 # Stworzenie punktów w bezpośrednim sąsiedztwie linii
-zion_transect$id = 1:nrow(zion_transect)
+zion_transect$id = 1:nrow(zion_transect) # nolint
 zion_transect = st_segmentize(zion_transect, dfMaxLength = 250)
 zion_transect = st_cast(zion_transect, "POINT")
 
