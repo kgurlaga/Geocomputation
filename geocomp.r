@@ -1721,4 +1721,26 @@ ncol(desire_rail)
 desire_rail = line_via(desire_rail, bristol_stations)
 ncol(desire_rail)
 
-###ROUTES
+### ROUTES
+desire_lines$distance_km = as.numeric(st_length(desire_lines)) / 1000
+desire_lines_short = desire_lines %>% filter(car_driver >= 100, distance_km <= 5, distance_km >= 2.5)
+
+routes_short = route(l = desire_lines_short, route_fun = route_osrm, osrm.profile = "car")
+
+waldo::compare(sf::st_crs(desire_lines_short), sf::st_crs(routes_short))
+routes_plot_data = rbind(
+    desire_lines_short %>% transmute(Entity = "Desire lines") %>% sf::st_set_crs("EPSG:4326"),
+    routes_short %>% transmute(Entity = "Routes") %>% sf::st_set_crs("EPSG:4326")
+)
+zone_cents = st_centroid(zones_od)
+zone_cents_routes = zone_cents[desire_lines_short, ]
+tm_shape(zones_od) +
+    tm_fill(fill_alpha = 0.2, lwd = 0.1) +
+    tm_shape(desire_lines_short, is.main = TRUE) +
+    tm_lines(lty = 2) +
+    tm_shape(routes_short) +
+    tm_lines(col = "red") +
+    tm_add_legend(title = "Entity", labels = c("Desire lines", "Routes"), type = "lines", col = c("black", "red"), lty = c(2, 1), position = tm_pos_in("left", "top")) +
+    tm_shape(zone_cents_routes) +
+    tm_symbols(fill = "black", size = 0.5) +
+    tm_scalebar()
