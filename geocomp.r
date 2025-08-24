@@ -1713,3 +1713,12 @@ od_inter = filter(bristol_od, o != d)
 
 desire_lines = od2line(od_inter, zones_od)
 qtm(desire_lines, lwd = "all")
+
+###NODES
+desire_rail = top_n(desire_lines, n = 3, wt = train)
+
+ncol(desire_rail)
+desire_rail = line_via(desire_rail, bristol_stations)
+ncol(desire_rail)
+
+###ROUTES
