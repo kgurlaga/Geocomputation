@@ -1678,11 +1678,28 @@ library(stplanr) # for processing geographic transport data
 library(tmap) # map-making (see Chapter 9)
 library(ggplot2) # data visualization package
 library(sfnetworks) # spatial network classes and functions
-
+library(tidyverse)
 names(bristol_zones)
 
 nrow(bristol_od)
 nrow(bristol_zones)
+
+
+summary(bristol_ways)
+summary(bristol_ttwa)
+summary(bristol_region)
+library(tmap)
+region_all = rbind(bristol_region, bristol_ttwa)
+tmap_mode("plot")
+tm_shape(region_all[1, ], bbox = region_all) +
+    tm_fill("yellow", col_alpha = 0.5) +
+    tm_shape(bristol_ways) +
+    tm_lines(col = "highway", lwd = 2.1, col.scale = tm_scale(values = "-Set1")) +
+    tm_scalebar() +
+    tm_shape(region_all) +
+    tm_borders(col = "black") +
+    tm_basemap(server = leaflet::providers$Esri.WorldTopoMap)
+    
 
 zones_attr = bristol_od %>%
     group_by(o) %>%
@@ -1744,3 +1761,72 @@ tm_shape(zones_od) +
     tm_shape(zone_cents_routes) +
     tm_symbols(fill = "black", size = 0.5) +
     tm_scalebar()
+
+### Route networks
+uptake = function(x) {
+    case_when(
+        x <= 3 ~ 0.5,
+        x >= 8 ~ 0,
+        TRUE ~ (8 - x) / (8 - 3) * 0.5
+    )
+}
+routes_short_scenario = routes_short %>%
+    mutate(uptake = uptake(distance / 1000)) %>%
+    mutate(bicycle = bicycle + car_driver * (1 - uptake))
+sum(routes_short_scenario$bicycle) - sum(routes_short$bicycle)
+
+route_network_scenario = overline(routes_short_scenario, attrib = "bicycle")
+
+routes_short_scenario %>%
+    ggplot() +
+    geom_line(aes(distance / 1000, uptake), color = "red", linewidth = 3) +
+    labs(x = "Route distance (km)", y = NULL, title = "Percent trips switching from driving to cycling") +
+    scale_y_continuous(labels = scales::percent)
+
+tm_shape(zones_od) +
+    tm_fill(fill_alpha = 0.2, lwd = 0.1) +
+    tm_shape(route_network_scenario, is.main = TRUE) +
+    tm_lines(lwd = "bicycle", lwd.scale = tm_scale(values.scale = 1.5), lwd.legend = tm_legend(title = "Number of bike trips per day \n(modeled, on direction)", position = tm_pos_in("left", "top")), col = "red")
+
+summary(bristol_ways)
+
+bristol_ways$lengths = st_length(bristol_ways)
+ways_sfn = as_sfnetwork(bristol_ways)
+class(ways_sfn)
+ways_sfn
+
+ways_centrality = ways_sfn %>%
+    activate("edges") %>%
+    mutate(betweenness = tidygraph::centrality_edge_betweenness(lengths))
+
+bb_wayssln = tmaptools::bb(route_network_scenario, xlim = c(0.1, 0.9), ylim = c(0.1, 0.6), relative = TRUE)
+tm_shape(zones_od) +
+    tm_fill(fill_alpha = 0.2, lwd = 0.1) +
+    tm_shape(ways_centrality %>% st_as_sf(), bb = bb_wayssln, is.main = TRUE) +
+    tm_lines(
+        lwd = "betweenness",
+        lwd.scale = tm_scale(n = 2, values.scale = 2),
+        lwd.legend = tm_legend(title = "Betweenness"),
+        col = "#630032", col_alpha = 0.75
+    ) +
+    tm_shape(route_network_scenario) +
+    tm_lines(
+        lwd = "bicycle",
+        lwd.scale = tm_scale(n = 2, values.scale = 2),
+        lwd.legend = tm_legend(title = "Number of bike trips (modeled, one direction)"),
+        col = "darkgreen", col_alpha = 0.75
+    ) +
+    tm_scalebar()
+
+existing_cycleways_buffer <- bristol_ways |>
+    filter(highway == "cycleway") |> # 1) filter out cycleways
+    st_union() |> # 2) unite geometries
+    st_buffer(dist = 100) # 3) create buffer
+
+route_network_no_infra <- st_difference(
+    route_network_scenario,
+    route_network_scenario |> st_set_crs(st_crs(existing_cycleways_buffer)),
+    existing_cycleways_buffer
+)
+tmap_mode("view")
+qtm(route_network_no_infra, basemaps = leaflet::providers$Esri.WorldTopoMap, lines.lwd = 5)
