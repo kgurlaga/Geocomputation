@@ -1863,3 +1863,22 @@ for (i in seq_len(nlyr(reclass))) {
 names(reclass) = names(input_ras)
 plot(reclass)
 
+pop_agg = aggregate(reclass$pop, fact = 20, fun = sum, na.rm = TRUE)
+summary(pop_agg)
+pop_agg = pop_agg[pop_agg > 500000, drop = FALSE]
+
+metros = pop_agg %>%
+    patches(directions = 8) %>%
+    as.polygons() %>%
+    st_as_sf()
+
+metro_names = sf::st_centroid(metros, of_largest_polygon = TRUE) %>%
+    tmaptools::rev_geocode_OSM(as.data.frame = TRUE) %>%
+    select(city, town, state)
+metro_names = dplyr::mutate(metro_names, city = ifelse(is.na(city), town, city))
+metro_names
+
+metro_names <- metro_names$city |>
+    as.character() |>
+    (\(x) ifelse(x == "Velbert", "Düsseldorf", x))() |>
+    gsub("ü", "ue", x = _)
