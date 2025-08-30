@@ -1830,3 +1830,36 @@ route_network_no_infra <- st_difference(
 )
 tmap_mode("view")
 qtm(route_network_no_infra, basemaps = leaflet::providers$Esri.WorldTopoMap, lines.lwd = 5)
+
+
+###Geomarketing
+library(sf)
+library(dplyr)
+library(purrr)
+library(terra)
+library(osmdata)
+library(spDataLarge)
+
+download.file("https://tinyurl.com/ybtpkwxz", destfile = "census.zip", mode = "wb")
+
+data("census_de", package = "spDataLarge")
+
+input = select(census_de, x = x_mp_1km, y = y_mp_1km, pop = Einwohner, women = Frauen_A, mean_age = Alter_D, hh_size = HHGroesse_D)
+input_tidy = mutate(input, across(.cols = c(pop, women, mean_age, hh_size), .fns = ~ ifelse(.x %in% c(-1, -9), NA, .x)))
+
+input_ras = rast(input_tidy, type = "xyz", crs = "EPSG:3035")
+plot(input_ras)
+
+rcl_pop = matrix(c(1, 1, 127, 2, 2, 375, 3, 3, 1250, 4, 4, 3000, 5, 5, 6000, 6, 6, 8000), ncol = 3, byrow = TRUE)
+rcl_woman = matrix(c(1, 1, 3, 2, 2, 2, 3, 3, 1, 4, 5, 0), ncol = 3, byrow = TRUE)
+rcl_age = matrix(c(1, 1, 3, 2, 2, 0, 3, 5, 0), ncol = 3, byrow = TRUE)
+rcl_hh = rcl_woman
+rcl = list(rcl_pop, rcl_woman, rcl_age, rcl_hh)
+
+reclass = input_ras
+for (i in seq_len(nlyr(reclass))) {
+    reclass[[i]] = classify(x = reclass[[i]], rcl = rcl[[i]], right = NA)
+}
+names(reclass) = names(input_ras)
+plot(reclass)
+
