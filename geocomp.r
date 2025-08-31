@@ -1882,3 +1882,17 @@ metro_names <- metro_names$city |>
     as.character() |>
     (\(x) ifelse(x == "Velbert", "Düsseldorf", x))() |>
     gsub("ü", "ue", x = _)
+
+data("shops", package = "spDataLarge")
+
+shops = sf::st_transform(shops, st_crs(reclass))
+poi = rasterize(x = shops, y = reclass, field = "osm_id", fun = "length")
+
+int = classInt::classIntervals(values(poi), n = 4, style = "fisher")
+int = round(int$brks)
+rcl_poi = matrix(c(int[1], rep(int[-c(1, length(int))], each = 2), int[length(int)] + 1), ncol = 2, byrow = TRUE)
+rcl_poi = cbind(rcl_poi, 0:3)
+poi = classify(poi, rcl = rcl_poi, right = NA)
+names(poi) = "poi"
+
+
