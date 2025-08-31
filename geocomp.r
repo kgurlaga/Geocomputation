@@ -1895,4 +1895,17 @@ rcl_poi = cbind(rcl_poi, 0:3)
 poi = classify(poi, rcl = rcl_poi, right = NA)
 names(poi) = "poi"
 
+reclass = reclass[[names(reclass) != "pop"]] %>% c(poi)
 
+result = sum(reclass)
+
+library(leaflet)
+berlin = metros[metro_names == "Berlin", ]
+berlin_raster = crop(result, vect(berlin))
+summary(berlin_raster)
+berlin_raster
+berlin_raster = berlin_raster[berlin_raster > 9, drop = FALSE]
+leaflet::leaflet() %>%
+    leaflet::addTiles() %>%
+    leaflet::addRasterImage(raster::raster(berlin_raster), colors = "darkgreen", opacity = 0.8) %>%
+    leaflet::addLegend("bottomright", colors = c("darkgreen"), labels = c("potential locations"), title = "Legend")
