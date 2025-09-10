@@ -1909,3 +1909,49 @@ leaflet::leaflet() %>%
     leaflet::addTiles() %>%
     leaflet::addRasterImage(raster::raster(berlin_raster), colors = "darkgreen", opacity = 0.8) %>%
     leaflet::addLegend("bottomright", colors = c("darkgreen"), labels = c("potential locations"), title = "Legend")
+
+### ECOLOGY
+library(sf)
+library(terra)
+library(dplyr)
+library(data.table)
+library(mlr3)
+library(mlr3spatiotempcv)
+library(mlr3tunning)
+library(mlr3learners)
+library(paradox)
+library(ranger)
+library(qgisprocess)
+library(tree)
+library(vegan)
+
+data("study_area", "random_points", "comm", package = "spDataLarge")
+dem = rast(system.file("raster/dem.tif", package = "spDataLarge"))
+ndvi = rast(system.file("raster/ndvi.tif", package = "spDataLarge"))
+
+comm[35:40, 1:5]
+
+qgisprocess::qgis_enable_plugins("processing_saga_nextgen")
+qgisprocess::qgis_show_help("sagang:sagawetnessindex")
+
+ep = qgisprocess::qgis_run_algorithm(
+    alg = "sagang:sagawetnessindex",
+    DEM = dem,
+    SLOPE_TYPE = 1,
+    SLOPE = tempfile(fileext = ".sdat"),
+    AREA = tempfile(fileext = ".sdat"),
+    .quiet = TRUE
+)
+
+ep = ep[c("AREA", "SLOPE")] %>%
+    unlist() %>%
+    rast()
+names(ep) = c("carea", "cslope")
+origin(ep) = origin(dem)
+ep = c(dem, ndvi, ep)
+
+ep$carea = log10(ep$carea)
+ep = rast(system.file("raster/ep.tif", package = "spDataLarge"))
+
+ep_rp = terra::extract(ep, random_points, ID = FALSE)
+random_points = cbind(random_points, ep_rp)
