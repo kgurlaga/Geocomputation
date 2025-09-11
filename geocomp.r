@@ -1955,3 +1955,16 @@ ep = rast(system.file("raster/ep.tif", package = "spDataLarge"))
 
 ep_rp = terra::extract(ep, random_points, ID = FALSE)
 random_points = cbind(random_points, ep_rp)
+
+pa = vegan::decostand(comm, "pa")
+pa <- pa[rowSums(pa) != 0, ]
+
+set.seed(25072018)
+nmds = vegan::metaMDS(comm = pa, k = 4, try = 500)
+nmds$stress
+
+elev = dplyr::filter(random_points, id %in% rownames(pa)) %>%
+    dplyr::pull(dem)
+rotnmds = vegan::MDSrotate(nmds, elev)
+sc = vegan::scores(rotnmds, choices = 1:2, display = "sites")
+plot(y = sc[, 1], x = elev, xlab = "elevation in m", ylab = "First NMDS axis", cex.lab = 0.8, cex.axis = 0.8)
